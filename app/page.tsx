@@ -29,6 +29,9 @@ export default function Page() {
   const [lastReward, setLastReward] = useState<number | null>(null)
   const [round, setRound] = useState(14)
   const [walletConnected, setWalletConnected] = useState(false)
+  const [walletAddress, setWalletAddress] = useState<string | null>(null)
+  const [faucetStatus, setFaucetStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [faucetMessage, setFaucetMessage] = useState('')
   const [betAmount, setBetAmount] = useState(10)
   const angleLabel = `${angle >= 0 ? '+' : ''}${angle.toFixed(2)} rad`
   const angleDegrees = Math.round(angle * 90)
@@ -92,6 +95,26 @@ export default function Page() {
     setStatus('running')
   }
 
+  async function requestTestStx() {
+    if (!walletAddress || faucetStatus === 'loading') return
+    setFaucetStatus('loading')
+    setFaucetMessage('Requesting test STX...')
+    try {
+      const response = await fetch('/api/faucet', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ address: walletAddress }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error ?? 'Faucet request failed.')
+      setFaucetStatus('success')
+      setFaucetMessage(data.txId ? `Faucet tx: ${data.txId.slice(0, 10)}...` : 'Test STX requested.')
+    } catch (error) {
+      setFaucetStatus('error')
+      setFaucetMessage(error instanceof Error ? error.message : 'Faucet request failed.')
+    }
+  }
+
   function updateArrowFromPointer(event: React.PointerEvent<HTMLDivElement>) {
     const svg = event.currentTarget.querySelector('svg[aria-label="Candlestick market chart"]')
     if (!svg) return
@@ -115,7 +138,9 @@ export default function Page() {
               type="button"
               onClick={async () => {
                 try {
-                  await connect({ forceWalletSelect: true })
+                  const response = await connect({ forceWalletSelect: true })
+                  const address = (response as { addresses?: Array<{ address?: string }> }).addresses?.[0]?.address ?? null
+                  setWalletAddress(address)
                   setWalletConnected(true)
                 } catch {
                   // Wallet selection can be cancelled by the user.
@@ -179,6 +204,8 @@ export default function Page() {
           <section className="mt-4 rounded-2xl border border-white/[0.07] bg-[#111716] px-4 py-4">
             <div className="flex items-start justify-between"><div><p className="text-[10px] uppercase tracking-[0.18em] text-white/35">available balance</p><p className="mt-1 font-mono text-[27px] font-semibold tracking-tight">${balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p></div><div className="rounded-lg border border-[#c8ff32]/20 bg-[#c8ff32]/10 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-[#c8ff32]">+12.4%</div></div>
             <div className="mt-4 flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-white/35"><Wallet size={12} /> round {String(round).padStart(2, '0')} <span className="ml-auto flex items-center gap-1.5 text-[#c8ff32]"><Radio size={10} className="animate-pulse" /> market live</span></div>
+            <button type="button" onClick={requestTestStx} disabled={!walletConnected || faucetStatus === 'loading'} className="mt-4 flex w-full items-center justify-center rounded-xl border border-[#58d9ff]/25 bg-[#58d9ff]/10 px-3 py-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-[#58d9ff] transition hover:bg-[#58d9ff]/15 disabled:cursor-not-allowed disabled:opacity-35">{faucetStatus === 'loading' ? 'Requesting test STX...' : 'Get test STX from Faucet'}</button>
+            {faucetMessage && <p className={`mt-2 truncate text-center font-mono text-[9px] ${faucetStatus === 'error' ? 'text-[#ff5964]' : 'text-white/35'}`} title={faucetMessage}>{faucetMessage}</p>}
           </section>
           <div className="mt-4 flex items-center justify-center gap-5 text-[10px] uppercase tracking-[0.14em] text-white/25"><span className="flex items-center gap-1.5"><ShieldCheck size={12} /> provably fair</span><span className="flex items-center gap-1.5"><Trophy size={12} /> win rate 78%</span><CircleHelp size={13} /></div>
         </section>
