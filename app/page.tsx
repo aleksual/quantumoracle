@@ -29,6 +29,7 @@ export default function Page() {
   const [lastReward, setLastReward] = useState<number | null>(null)
   const [round, setRound] = useState(14)
   const [walletConnected, setWalletConnected] = useState(false)
+  const [betAmount, setBetAmount] = useState(10)
   const angleLabel = `${angle >= 0 ? '+' : ''}${angle.toFixed(2)} rad`
   const angleDegrees = Math.round(angle * 90)
   const rewardPreview = useMemo(() => Math.max(0, Math.abs(angle) * 92 + 9), [angle])
@@ -163,6 +164,17 @@ export default function Page() {
 
         <section className="mt-auto px-4 pb-5 pt-5">
           {status !== 'idle' && <div className={`mb-3 flex items-center gap-3 rounded-xl border px-3 py-2.5 text-xs ${status === 'running' ? 'border-[#58d9ff]/20 bg-[#58d9ff]/5 text-[#58d9ff]' : status === 'win' ? 'border-[#c8ff32]/20 bg-[#c8ff32]/5 text-[#c8ff32]' : 'border-[#ff5964]/20 bg-[#ff5964]/5 text-[#ff5964]'}`}><Sparkles size={14} className={status === 'running' ? 'animate-spin' : ''} /><span>{status === 'running' ? 'Genesis block is resolving...' : status === 'win' ? `BID confirmed · +$${lastReward?.toFixed(2)}` : `BID missed · -$${Math.abs(lastReward ?? 0).toFixed(2)}`}</span><span className="ml-auto font-mono text-[10px] uppercase">{status === 'running' ? 'pending' : status}</span></div>}
+          <div className="mb-3 rounded-2xl border border-white/[0.07] bg-[#111716] p-2">
+            <div className="flex items-center justify-between gap-2">
+              <button type="button" aria-label="Decrease bet by one dollar" onClick={() => setBetAmount((value) => Math.max(1, value - 1))} disabled={status === 'running' || betAmount <= 1} className="flex size-11 items-center justify-center rounded-xl border border-white/[0.08] text-xl text-white/65 transition hover:bg-white/5 hover:text-white disabled:cursor-not-allowed disabled:opacity-30">−</button>
+              <label className="flex flex-1 items-center justify-center gap-1 font-mono text-2xl font-semibold text-white">
+                <span className="text-[#c8ff32]">$</span>
+                <input aria-label="Bet amount in dollars" type="number" min="1" step="1" value={betAmount} onChange={(event) => setBetAmount(Math.max(1, Number(event.target.value) || 1))} disabled={status === 'running'} className="w-24 bg-transparent text-center font-mono text-2xl font-semibold outline-none [appearance:textfield] disabled:opacity-50 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
+              </label>
+              <button type="button" aria-label="Increase bet by one dollar" onClick={() => setBetAmount((value) => value + 1)} disabled={status === 'running'} className="flex size-11 items-center justify-center rounded-xl border border-white/[0.08] text-xl text-white/65 transition hover:bg-white/5 hover:text-white disabled:cursor-not-allowed disabled:opacity-30">+</button>
+            </div>
+            <p className="mt-1 text-center font-mono text-[9px] uppercase tracking-[0.16em] text-white/25">bet amount</p>
+          </div>
           <button onClick={placeBid} disabled={status === 'running'} className="group flex h-16 w-full items-center justify-center gap-3 rounded-2xl bg-[#c8ff32] font-mono text-lg font-black tracking-[0.2em] text-[#10150b] shadow-[0_8px_30px_rgba(200,255,50,.16)] transition hover:scale-[1.01] hover:bg-[#d5ff68] active:scale-[.98] disabled:cursor-wait disabled:opacity-60"><Zap size={19} fill="currentColor" /> {status === 'running' ? 'PROCESSING' : 'BID'} <span className="text-xs tracking-normal opacity-50">↵</span></button>
           <section className="mt-4 rounded-2xl border border-white/[0.07] bg-[#111716] px-4 py-4">
             <div className="flex items-start justify-between"><div><p className="text-[10px] uppercase tracking-[0.18em] text-white/35">available balance</p><p className="mt-1 font-mono text-[27px] font-semibold tracking-tight">${balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p></div><div className="rounded-lg border border-[#c8ff32]/20 bg-[#c8ff32]/10 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-[#c8ff32]">+12.4%</div></div>
