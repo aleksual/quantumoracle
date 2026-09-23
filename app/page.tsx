@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { connect } from '@stacks/connect'
 import { Activity, ArrowDownRight, ArrowUpRight, ChevronDown, CircleHelp, Crosshair, Gauge, Menu, Radio, ShieldCheck, Sparkles, Trophy, Wallet, Zap } from 'lucide-react'
 
 const initialCandles = [
@@ -27,6 +28,7 @@ export default function Page() {
   const [status, setStatus] = useState<'idle' | 'running' | 'win' | 'loss'>('idle')
   const [lastReward, setLastReward] = useState<number | null>(null)
   const [round, setRound] = useState(14)
+  const [walletConnected, setWalletConnected] = useState(false)
   const angleLabel = `${angle >= 0 ? '+' : ''}${angle.toFixed(2)} rad`
   const angleDegrees = Math.round(angle * 90)
   const rewardPreview = useMemo(() => Math.max(0, Math.abs(angle) * 92 + 9), [angle])
@@ -107,7 +109,24 @@ export default function Page() {
             <div className="flex size-9 items-center justify-center rounded-xl bg-[#c8ff32] text-[#10150b] shadow-[0_0_20px_rgba(200,255,50,.2)]"><Crosshair size={19} strokeWidth={2.5} /></div>
             <div><p className="font-mono text-[12px] font-bold uppercase tracking-[0.22em]">QUANTUM ORACLE</p><p className="mt-0.5 text-[10px] uppercase tracking-[0.18em] text-white/35">risk arena / live</p></div>
           </div>
-          <button aria-label="Open menu" className="rounded-full p-2 text-white/45 transition hover:bg-white/5 hover:text-white"><Menu size={19} /></button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await connect({ forceWalletSelect: true })
+                  setWalletConnected(true)
+                } catch {
+                  // Wallet selection can be cancelled by the user.
+                }
+              }}
+              className="flex items-center gap-1.5 rounded-xl bg-[#c8ff32] px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.08em] text-[#10150b] shadow-[0_0_18px_rgba(200,255,50,.16)] transition hover:bg-[#d5ff68] active:scale-95"
+            >
+              <Wallet size={13} strokeWidth={2.5} />
+              {walletConnected ? 'Connected' : 'Connect Wallet'}
+            </button>
+            <button aria-label="Open menu" className="rounded-full p-2 text-white/45 transition hover:bg-white/5 hover:text-white"><Menu size={19} /></button>
+          </div>
         </header>
 
         <section className="px-4 pt-6">
