@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { connect } from '@stacks/connect'
+import { connect, openContractCall } from '@stacks/connect'
+import { uintCV } from '@stacks/transactions'
 import { Activity, ArrowDownRight, ArrowUpRight, ChevronDown, CircleHelp, Crosshair, Gauge, Menu, Radio, ShieldCheck, Sparkles, Trophy, Wallet, Zap } from 'lucide-react'
 
 const initialCandles = [
@@ -32,6 +33,7 @@ export default function Page() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null)
   const [faucetStatus, setFaucetStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [faucetMessage, setFaucetMessage] = useState('')
+  const [contractTxId, setContractTxId] = useState<string | null>(null)
   const [betAmount, setBetAmount] = useState(10)
   const angleLabel = `${angle >= 0 ? '+' : ''}${angle.toFixed(2)} rad`
   const angleDegrees = Math.round(angle * 90)
@@ -89,10 +91,30 @@ export default function Page() {
     return () => window.clearTimeout(timer)
   }, [status, rewardPreview])
 
-  function placeBid() {
-    if (status === 'running') return
+  async function placeBid() {
+    if (status === 'running' || !walletConnected) return
     setLastReward(null)
+    setContractTxId(null)
     setStatus('running')
+
+    try {
+      const amountMicroStx = Math.round(betAmount * 1_000_000)
+      const deltaR = Math.round(Math.abs(angle) * 1_000_000)
+      await openContractCall({
+        contractAddress: process.env.NEXT_PUBLIC_CONTRACT_ADDRESS ?? 'ST225ER9XSGMTAXV8XHWYDY50PCR3X6RSR8J7FJ8B',
+        contractName: process.env.NEXT_PUBLIC_CONTRACT_NAME ?? 'rebalancer',
+        functionName: 'deposit',
+        functionArgs: [uintCV(amountMicroStx), uintCV(deltaR)],
+        network: process.env.NEXT_PUBLIC_STACKS_NETWORK ?? 'testnet',
+        onFinish: ({ txId }: { txId: string }) => {
+          setContractTxId(txId)
+          setStatus('idle')
+        },
+        onCancel: () => setStatus('idle'),
+      } as Parameters<typeof openContractCall>[0])
+    } catch {
+      setStatus('idle')
+    }
   }
 
   async function requestTestStx() {
@@ -200,7 +222,8 @@ export default function Page() {
             </div>
             <p className="mt-1 text-center font-mono text-[9px] uppercase tracking-[0.16em] text-white/25">bet amount</p>
           </div>
-          <button onClick={placeBid} disabled={status === 'running'} className="group flex h-16 w-full items-center justify-center gap-3 rounded-2xl bg-[#c8ff32] font-mono text-lg font-black tracking-[0.2em] text-[#10150b] shadow-[0_8px_30px_rgba(200,255,50,.16)] transition hover:scale-[1.01] hover:bg-[#d5ff68] active:scale-[.98] disabled:cursor-wait disabled:opacity-60"><Zap size={19} fill="currentColor" /> {status === 'running' ? 'PROCESSING' : 'BID'} <span className="text-xs tracking-normal opacity-50">↵</span></button>
+          <button onClick={placeBid} disabled={status === 'running' || !walletConnected} className="group flex h-16 w-full items-center justify-center gap-3 rounded-2xl bg-[#c8ff32] font-mono text-lg font-black tracking-[0.2em] text-[#10150b] shadow-[0_8px_30px_rgba(200,255,50,.16)] transition hover:scale-[1.01] hover:bg-[#d5ff68] active:scale-[.98] disabled:cursor-wait disabled:opacity-60"><Zap size={19} fill="currentColor" /> {status === 'running' ? 'PROCESSING' : walletConnected ? 'BID' : 'CONNECT WALLET'} <span className="text-xs tracking-normal opacity-50">↵</span></button>
+          {contractTxId && <a href={`https://explorer.hiro.so/txid/${contractTxId}?chain=testnet`} target="_blank" rel="noreferrer" className="mt-2 block truncate text-center font-mono text-[9px] text-[#58d9ff]">contract tx: {contractTxId}</a>}
           <section className="mt-4 rounded-2xl border border-white/[0.07] bg-[#111716] px-4 py-4">
             <div className="flex items-start justify-between"><div><p className="text-[10px] uppercase tracking-[0.18em] text-white/35">available balance</p><p className="mt-1 font-mono text-[27px] font-semibold tracking-tight">${balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p></div><div className="rounded-lg border border-[#c8ff32]/20 bg-[#c8ff32]/10 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-[#c8ff32]">+12.4%</div></div>
             <div className="mt-4 flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-white/35"><Wallet size={12} /> round {String(round).padStart(2, '0')} <span className="ml-auto flex items-center gap-1.5 text-[#c8ff32]"><Radio size={10} className="animate-pulse" /> market live</span></div>
