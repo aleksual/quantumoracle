@@ -25,7 +25,7 @@ export default function Page() {
   const [candleTick, setCandleTick] = useState(0)
   const [btcPrice, setBtcPrice] = useState<number | null>(null)
   const [priceDelta, setPriceDelta] = useState(0)
-  const [balance, setBalance] = useState(1248.64)
+  const [balance, setBalance] = useState(0)
   const [status, setStatus] = useState<'idle' | 'running' | 'win' | 'loss'>('idle')
   const [lastReward, setLastReward] = useState<number | null>(null)
   const [round, setRound] = useState(14)
@@ -79,13 +79,38 @@ export default function Page() {
   }, [])
 
   useEffect(() => {
+    if (!walletAddress) {
+      setBalance(0)
+      return
+    }
+
+    let cancelled = false
+    async function updateBalance() {
+      try {
+        const response = await fetch(`/api/stacks/balance?address=${encodeURIComponent(walletAddress)}`, { cache: 'no-store' })
+        if (!response.ok) return
+        const data = await response.json()
+        if (!cancelled && Number.isFinite(Number(data.balance))) setBalance(Number(data.balance))
+      } catch {
+        // Keep the last known balance when the Hiro API is temporarily unavailable.
+      }
+    }
+
+    updateBalance()
+    const interval = window.setInterval(updateBalance, 10_000)
+    return () => {
+      cancelled = true
+      window.clearInterval(interval)
+    }
+  }, [walletAddress])
+
+  useEffect(() => {
     if (status !== 'running') return
     const timer = window.setTimeout(() => {
       const isWin = Math.random() > 0.28
       const reward = isWin ? rewardPreview : -Math.max(12, rewardPreview * 0.72)
       setStatus(isWin ? 'win' : 'loss')
       setLastReward(reward)
-      setBalance((value) => Number((value + reward).toFixed(2)))
       setRound((value) => value + 1)
     }, 1450)
     return () => window.clearTimeout(timer)
