@@ -42,6 +42,7 @@ export default function Page() {
   const lastCandle = candles[candles.length - 1]
   const trendDirection = lastCandle.close - firstCandle.close
   const trendPercent = btcPrice && priceDelta ? (priceDelta / btcPrice) * 100 : 0
+  const chartOrigin = { x: 0, y: 150 }
 
   useEffect(() => {
     let previousPrice: number | null = null
@@ -213,11 +214,12 @@ export default function Page() {
                 {candles.map((c) => <g key={c.x} className="opacity-80"><line x1={c.x} x2={c.x} y1={c.high} y2={c.low} stroke={c.up ? '#c8ff32' : '#ff5964'} strokeWidth="1" /><rect x={c.x - 4} y={Math.min(c.open, c.close)} width="8" height={Math.max(5, Math.abs(c.open - c.close))} rx="1" fill={c.up ? '#c8ff32' : '#ff5964'} /></g>)}
               </g>
             </svg>
-            <svg viewBox="0 0 340 150" className="pointer-events-none absolute inset-x-3 bottom-5 top-9 z-20 h-[165px] w-[calc(100%-24px)] overflow-visible" preserveAspectRatio="none" aria-hidden="true">
+            <svg viewBox="0 0 340 150" className="pointer-events-none absolute inset-x-3 bottom-5 top-9 z-20 h-[calc(100%-56px)] w-[calc(100%-24px)] overflow-visible" preserveAspectRatio="none" aria-hidden="true">
               <defs><marker id="trend-arrowhead" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#c8ff32" /></marker></defs>
               <g>
-                <line x1="0" y1="150" x2={arrowTip.x} y2={arrowTip.y} stroke="#c8ff32" strokeWidth="2.5" strokeLinecap="round" markerEnd="url(#trend-arrowhead)" style={{ filter: 'drop-shadow(0 0 6px rgba(200,255,50,.85))' }} />
-                <circle cx="0" cy="150" r="4" fill="#c8ff32" stroke="#0b1110" strokeWidth="2" />
+                <line x1={chartOrigin.x} y1={chartOrigin.y} x2={arrowTip.x} y2={arrowTip.y} stroke="#c8ff32" strokeWidth="2.5" strokeLinecap="round" markerEnd="url(#trend-arrowhead)" style={{ filter: 'drop-shadow(0 0 6px rgba(200,255,50,.85))' }} />
+                <circle cx={chartOrigin.x} cy={chartOrigin.y} r="4" fill="#c8ff32" stroke="#0b1110" strokeWidth="2" />
+                <text x="7" y="146" fill="#c8ff32" fontSize="8" fontFamily="monospace">$0</text>
               </g>
             </svg>
             <div className="absolute bottom-3 left-3 rounded bg-black/30 px-1.5 py-1 font-mono text-[9px] text-white/45">tap chart to set angle · {angleDegrees}°</div>
