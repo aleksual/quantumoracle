@@ -281,23 +281,6 @@ export default function Page() {
           </div>
         </section>
 
-        <section className="px-4 pt-5">
-          <div className="mb-3 flex items-center justify-between">
-            <div><p className="text-[10px] uppercase tracking-[0.2em] text-white/35">oracle chain</p><h2 className="mt-1 text-lg font-semibold tracking-tight">Previous blocks</h2></div>
-            <div className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.12em] text-white/35"><span className={`size-1.5 rounded-full ${assemblingBlock ? 'animate-ping bg-[#58d9ff]' : 'bg-[#c8ff32]'}`} /> {assemblingBlock ? 'building' : 'live'}</div>
-          </div>
-          <div className="flex flex-col gap-2">
-            {blocks.map((block, index) => <article key={`${block.height}-${block.hash}`} className={`rounded-2xl border border-white/[0.07] bg-[#111716] p-3 ${index === 0 && assemblingBlock ? 'block-build' : ''}`}>
-              <div className="mb-2 flex items-center justify-between font-mono text-[9px] uppercase tracking-[0.12em] text-white/35"><span className="text-[#58d9ff]">block #{block.height}</span><span>{block.time}</span></div>
-              <div className="mb-3 flex items-center justify-between"><span className="font-mono text-[10px] text-white/45">{block.hash}</span><span className="text-[9px] uppercase tracking-[0.1em] text-white/25">{block.bets.length} bets</span></div>
-              <div className="flex flex-wrap gap-1.5">
-                {block.bets.map((bet) => <div key={bet.id} title={`${bet.player} · $${bet.amount} · ${bet.direction}`} className={`flex items-center gap-1.5 rounded-lg border px-2 py-1.5 font-mono text-[10px] ${bet.kind === 'mine-win' ? 'border-[#c8ff32]/35 bg-[#c8ff32]/10 text-[#c8ff32]' : bet.kind === 'mine-loss' ? 'border-[#ff5964]/35 bg-[#ff5964]/10 text-[#ff5964]' : 'border-[#a855f7]/35 bg-[#a855f7]/10 text-[#c084fc]'}`}><span className="font-bold">{bet.player}</span><span className="opacity-70">${bet.amount}</span><span className="text-[8px] opacity-60">{bet.direction}</span></div>)}
-              </div>
-            </article>)}
-          </div>
-          <div className="mt-2 flex items-center justify-center gap-2 text-[9px] font-mono uppercase tracking-[0.12em] text-white/30"><span className="size-1.5 rounded-full bg-[#c8ff32]" /> your win <span className="ml-2 size-1.5 rounded-full bg-[#ff5964]" /> your loss <span className="ml-2 size-1.5 rounded-full bg-[#a855f7]" /> other players</div>
-        </section>
-
         <section className="mt-auto px-4 pb-5 pt-5">
           {status !== 'idle' && <div className={`mb-3 flex items-center gap-3 rounded-xl border px-3 py-2.5 text-xs ${status === 'running' ? 'border-[#58d9ff]/20 bg-[#58d9ff]/5 text-[#58d9ff]' : status === 'win' ? 'border-[#c8ff32]/20 bg-[#c8ff32]/5 text-[#c8ff32]' : 'border-[#ff5964]/20 bg-[#ff5964]/5 text-[#ff5964]'}`}><Sparkles size={14} className={status === 'running' ? 'animate-spin' : ''} /><span>{status === 'running' ? 'Genesis block is resolving...' : status === 'win' ? `BID confirmed · +$${lastReward?.toFixed(2)}` : `BID missed · -$${Math.abs(lastReward ?? 0).toFixed(2)}`}</span><span className="ml-auto font-mono text-[10px] uppercase">{status === 'running' ? 'pending' : status}</span></div>}
           <div className="mb-3 rounded-2xl border border-white/[0.07] bg-[#111716] p-2">
@@ -320,6 +303,23 @@ export default function Page() {
             {faucetMessage && <p className={`mt-2 truncate text-center font-mono text-[9px] ${faucetStatus === 'error' ? 'text-[#ff5964]' : 'text-white/35'}`} title={faucetMessage}>{faucetMessage}</p>}
           </section>
           <div className="mt-4 flex items-center justify-center gap-5 text-[10px] uppercase tracking-[0.14em] text-white/25"><span className="flex items-center gap-1.5"><ShieldCheck size={12} /> provably fair</span><span className="flex items-center gap-1.5"><Trophy size={12} /> win rate 78%</span><CircleHelp size={13} /></div>
+
+          <section className="mt-5 border-t border-white/[0.06] pt-5">
+            <div className="mb-3 flex items-center justify-between">
+              <div><p className="text-[10px] uppercase tracking-[0.2em] text-white/35">oracle chain</p><h2 className="mt-1 text-lg font-semibold tracking-tight">Previous blocks</h2></div>
+              <div className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.12em] text-white/35"><span className={`size-1.5 rounded-full ${assemblingBlock ? 'animate-ping bg-[#58d9ff]' : 'bg-[#c8ff32]'}`} /> {assemblingBlock ? 'building' : 'live'}</div>
+            </div>
+            <div className="flex flex-col gap-2">
+              {blocks.map((block, index) => <article key={`${block.height}-${block.hash}`} className={`rounded-2xl border border-white/[0.07] bg-[#111716] p-3 ${index === 0 && assemblingBlock ? 'block-build' : ''}`}>
+                <div className="mb-2 flex items-center justify-between font-mono text-[9px] uppercase tracking-[0.12em] text-white/35"><span className="text-[#58d9ff]">block #{block.height}</span><span>{block.time}</span></div>
+                <div className="mb-3 flex items-center justify-between"><span className="font-mono text-[10px] text-white/45">{block.hash}</span><span className="text-[9px] uppercase tracking-[0.1em] text-white/25">{block.bets.length} bets</span></div>
+                <div className="flex flex-wrap gap-1.5">
+                  {block.bets.map((bet) => <div key={bet.id} title={`${bet.player} · $${bet.amount} · ${bet.direction}`} className={`flex items-center gap-1.5 rounded-lg border px-2 py-1.5 font-mono text-[10px] ${bet.kind === 'mine-win' ? 'border-[#c8ff32]/35 bg-[#c8ff32]/10 text-[#c8ff32]' : bet.kind === 'mine-loss' ? 'border-[#ff5964]/35 bg-[#ff5964]/10 text-[#ff5964]' : 'border-[#a855f7]/35 bg-[#a855f7]/10 text-[#c084fc]'}`}><span className="font-bold">{bet.player}</span><span className="opacity-70">${bet.amount}</span><span className="text-[8px] opacity-60">{bet.direction}</span></div>)}
+                </div>
+              </article>)}
+            </div>
+            <div className="mt-2 flex items-center justify-center gap-2 text-[9px] font-mono uppercase tracking-[0.12em] text-white/30"><span className="size-1.5 rounded-full bg-[#c8ff32]" /> your win <span className="ml-2 size-1.5 rounded-full bg-[#ff5964]" /> your loss <span className="ml-2 size-1.5 rounded-full bg-[#a855f7]" /> other players</div>
+          </section>
         </section>
         <footer className="flex items-center justify-between border-t border-white/[0.06] px-5 py-3 text-[9px] uppercase tracking-[0.16em] text-white/20"><span>network: genesis testnet</span><span className="flex items-center gap-1">v0.8 <ChevronDown size={11} /></span></footer>
       </div>
