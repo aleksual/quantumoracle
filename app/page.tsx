@@ -5,6 +5,29 @@ import { connect, openContractCall } from '@stacks/connect'
 import { uintCV } from '@stacks/transactions'
 import { Activity, ArrowDownRight, ArrowUpRight, ChevronDown, CircleHelp, Crosshair, Gauge, Menu, Radio, ShieldCheck, Sparkles, Trophy, Wallet, Zap } from 'lucide-react'
 
+type BetKind = 'mine-win' | 'mine-loss' | 'other'
+
+type BlockBet = {
+  id: string
+  player: string
+  amount: number
+  kind: BetKind
+  direction: 'UP' | 'DOWN'
+}
+
+type OracleBlock = {
+  height: number
+  hash: string
+  time: string
+  bets: BlockBet[]
+}
+
+const initialBlocks: OracleBlock[] = [
+  { height: 1842, hash: '9f3a…c81d', time: '12 sec ago', bets: [{ id: '1', player: 'You', amount: 10, kind: 'mine-win', direction: 'UP' }, { id: '2', player: '0x7a…91', amount: 24, kind: 'other', direction: 'DOWN' }, { id: '3', player: '0x2c…44', amount: 8, kind: 'other', direction: 'UP' }] },
+  { height: 1841, hash: '4b72…a0e9', time: '1 min ago', bets: [{ id: '4', player: 'You', amount: 12, kind: 'mine-loss', direction: 'DOWN' }, { id: '5', player: '0x9d…e2', amount: 31, kind: 'other', direction: 'UP' }, { id: '6', player: '0x4f…18', amount: 6, kind: 'other', direction: 'DOWN' }] },
+  { height: 1840, hash: 'a16c…730b', time: '2 min ago', bets: [{ id: '7', player: '0x1e…55', amount: 18, kind: 'other', direction: 'UP' }, { id: '8', player: '0x8b…c4', amount: 9, kind: 'other', direction: 'UP' }, { id: '9', player: 'You', amount: 10, kind: 'mine-win', direction: 'UP' }] },
+]
+
 const initialCandles = [
   { x: 18, open: 108, close: 92, high: 82, low: 120, up: true },
   { x: 48, open: 95, close: 114, high: 84, low: 126, up: false },
@@ -35,6 +58,8 @@ export default function Page() {
   const [faucetMessage, setFaucetMessage] = useState('')
   const [contractTxId, setContractTxId] = useState<string | null>(null)
   const [betAmount, setBetAmount] = useState(10)
+  const [blocks, setBlocks] = useState(initialBlocks)
+  const [assemblingBlock, setAssemblingBlock] = useState(false)
   const angleLabel = `${angle >= 0 ? '+' : ''}${angle.toFixed(2)} rad`
   const angleDegrees = Math.round(angle * 90)
   const rewardPreview = useMemo(() => Math.max(0, Math.abs(angle) * 92 + 9), [angle])
@@ -104,6 +129,26 @@ export default function Page() {
       window.clearInterval(interval)
     }
   }, [walletAddress])
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setAssemblingBlock(true)
+      window.setTimeout(() => {
+        setBlocks((current) => [{
+          height: current[0].height + 1,
+          hash: `${Math.random().toString(16).slice(2, 6)}…${Math.random().toString(16).slice(2, 6)}`,
+          time: 'just now',
+          bets: [
+            { id: `new-${Date.now()}`, player: 'You', amount: betAmount, kind: Math.random() > 0.35 ? 'mine-win' : 'mine-loss', direction: angle >= 0 ? 'UP' : 'DOWN' },
+            { id: `new-other-${Date.now()}`, player: '0x6e…b2', amount: 16, kind: 'other', direction: 'UP' },
+            { id: `new-other-2-${Date.now()}`, player: '0xa1…7c', amount: 7, kind: 'other', direction: 'DOWN' },
+          ],
+        }, ...current].slice(0, 4))
+        setAssemblingBlock(false)
+      }, 650)
+    }, 9000)
+    return () => window.clearInterval(interval)
+  }, [angle, betAmount])
 
   useEffect(() => {
     if (status !== 'running') return
@@ -252,12 +297,29 @@ export default function Page() {
           <button onClick={placeBid} disabled={status === 'running' || !walletConnected} className="group flex h-16 w-full items-center justify-center gap-3 rounded-2xl bg-[#c8ff32] font-mono text-lg font-black tracking-[0.2em] text-[#10150b] shadow-[0_8px_30px_rgba(200,255,50,.16)] transition hover:scale-[1.01] hover:bg-[#d5ff68] active:scale-[.98] disabled:cursor-wait disabled:opacity-60"><Zap size={19} fill="currentColor" /> {status === 'running' ? 'PROCESSING' : walletConnected ? 'BID' : 'CONNECT WALLET'} <span className="text-xs tracking-normal opacity-50">↵</span></button>
           {contractTxId && <a href={`https://explorer.hiro.so/txid/${contractTxId}?chain=testnet`} target="_blank" rel="noreferrer" className="mt-2 block truncate text-center font-mono text-[9px] text-[#58d9ff]">contract tx: {contractTxId}</a>}
           <section className="mt-4 rounded-2xl border border-white/[0.07] bg-[#111716] px-4 py-4">
-            <div className="flex items-start justify-between"><div><p className="text-[10px] uppercase tracking-[0.18em] text-white/35">available balance</p><p className="mt-1 font-mono text-[27px] font-semibold tracking-tight">${balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p></div><div className="rounded-lg border border-[#c8ff32]/20 bg-[#c8ff32]/10 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-[#c8ff32]">+12.4%</div></div>
+            <div className="flex items-start justify-between"><div><p className="text-[10px] uppercase tracking-[0.18em] text-white/35">available balance</p><p className="mt-1 font-mono text-[27px] font-semibold tracking-tight">{balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} <span className="text-sm text-white/45">STX</span></p></div><div className="rounded-lg border border-[#c8ff32]/20 bg-[#c8ff32]/10 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-[#c8ff32]">+12.4%</div></div>
             <div className="mt-4 flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-white/35"><Wallet size={12} /> round {String(round).padStart(2, '0')} <span className="ml-auto flex items-center gap-1.5 text-[#c8ff32]"><Radio size={10} className="animate-pulse" /> market live</span></div>
             <button type="button" onClick={requestTestStx} disabled={!walletConnected || faucetStatus === 'loading'} className="mt-4 flex w-full items-center justify-center rounded-xl border border-[#58d9ff]/25 bg-[#58d9ff]/10 px-3 py-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-[#58d9ff] transition hover:bg-[#58d9ff]/15 disabled:cursor-not-allowed disabled:opacity-35">{faucetStatus === 'loading' ? 'Requesting test STX...' : 'Get test STX from Faucet'}</button>
             {faucetMessage && <p className={`mt-2 truncate text-center font-mono text-[9px] ${faucetStatus === 'error' ? 'text-[#ff5964]' : 'text-white/35'}`} title={faucetMessage}>{faucetMessage}</p>}
           </section>
           <div className="mt-4 flex items-center justify-center gap-5 text-[10px] uppercase tracking-[0.14em] text-white/25"><span className="flex items-center gap-1.5"><ShieldCheck size={12} /> provably fair</span><span className="flex items-center gap-1.5"><Trophy size={12} /> win rate 78%</span><CircleHelp size={13} /></div>
+
+          <section className="mt-5 border-t border-white/[0.06] pt-5">
+            <div className="mb-3 flex items-center justify-between">
+              <div><p className="text-[10px] uppercase tracking-[0.2em] text-white/35">oracle chain</p><h2 className="mt-1 text-lg font-semibold tracking-tight">Previous blocks</h2></div>
+              <div className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.12em] text-white/35"><span className={`size-1.5 rounded-full ${assemblingBlock ? 'animate-ping bg-[#58d9ff]' : 'bg-[#c8ff32]'}`} /> {assemblingBlock ? 'building' : 'live'}</div>
+            </div>
+            <div className="flex flex-col gap-2">
+              {blocks.map((block, index) => <article key={`${block.height}-${block.hash}`} className={`rounded-2xl border border-white/[0.07] bg-[#111716] p-3 ${index === 0 && assemblingBlock ? 'block-build' : ''}`}>
+                <div className="mb-2 flex items-center justify-between font-mono text-[9px] uppercase tracking-[0.12em] text-white/35"><span className="text-[#58d9ff]">block #{block.height}</span><span>{block.time}</span></div>
+                <div className="mb-3 flex items-center justify-between"><span className="font-mono text-[10px] text-white/45">{block.hash}</span><span className="text-[9px] uppercase tracking-[0.1em] text-white/25">{block.bets.length} bets</span></div>
+                <div className="flex flex-wrap gap-1.5">
+                  {block.bets.map((bet) => <div key={bet.id} title={`${bet.player} · $${bet.amount} · ${bet.direction}`} className={`flex items-center gap-1.5 rounded-lg border px-2 py-1.5 font-mono text-[10px] ${bet.kind === 'mine-win' ? 'border-[#c8ff32]/35 bg-[#c8ff32]/10 text-[#c8ff32]' : bet.kind === 'mine-loss' ? 'border-[#ff5964]/35 bg-[#ff5964]/10 text-[#ff5964]' : 'border-[#a855f7]/35 bg-[#a855f7]/10 text-[#c084fc]'}`}><span className="font-bold">{bet.player}</span><span className="opacity-70">${bet.amount}</span><span className="text-[8px] opacity-60">{bet.direction}</span></div>)}
+                </div>
+              </article>)}
+            </div>
+            <div className="mt-2 flex items-center justify-center gap-2 text-[9px] font-mono uppercase tracking-[0.12em] text-white/30"><span className="size-1.5 rounded-full bg-[#c8ff32]" /> your win <span className="ml-2 size-1.5 rounded-full bg-[#ff5964]" /> your loss <span className="ml-2 size-1.5 rounded-full bg-[#a855f7]" /> other players</div>
+          </section>
         </section>
         <footer className="flex items-center justify-between border-t border-white/[0.06] px-5 py-3 text-[9px] uppercase tracking-[0.16em] text-white/20"><span>network: genesis testnet</span><span className="flex items-center gap-1">v0.8 <ChevronDown size={11} /></span></footer>
       </div>

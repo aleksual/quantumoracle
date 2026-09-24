@@ -36,6 +36,16 @@
   to { transform: translateX(0); opacity: 1; }
 }
 
+.block-build {
+  animation: block-build-in 720ms cubic-bezier(.22,.61,.36,1);
+}
+
+@keyframes block-build-in {
+  from { transform: translateY(18px) scale(.96); opacity: 0; filter: brightness(1.8); }
+  55% { transform: translateY(-3px) scale(1.01); opacity: 1; filter: brightness(1.35); }
+  to { transform: translateY(0) scale(1); opacity: 1; filter: brightness(1); }
+}
+
 .risk-slider {
   appearance: none;
   height: 6px;
