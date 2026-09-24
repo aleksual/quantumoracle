@@ -216,8 +216,8 @@ export default function Page() {
             <svg viewBox="0 0 340 150" className="pointer-events-none absolute inset-x-3 bottom-5 top-9 z-20 h-[165px] w-[calc(100%-24px)] overflow-visible" preserveAspectRatio="none" aria-hidden="true">
               <defs><marker id="trend-arrowhead" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#c8ff32" /></marker></defs>
               <g>
-                <line x1={firstCandle.x} y1={firstCandle.close} x2={arrowTip.x} y2={arrowTip.y} stroke="#c8ff32" strokeWidth="2.5" strokeLinecap="round" markerEnd="url(#trend-arrowhead)" style={{ filter: 'drop-shadow(0 0 6px rgba(200,255,50,.85))' }} />
-                <circle cx={firstCandle.x} cy={firstCandle.close} r="4" fill="#c8ff32" stroke="#0b1110" strokeWidth="2" />
+                <line x1="0" y1="0" x2={arrowTip.x} y2={arrowTip.y} stroke="#c8ff32" strokeWidth="2.5" strokeLinecap="round" markerEnd="url(#trend-arrowhead)" style={{ filter: 'drop-shadow(0 0 6px rgba(200,255,50,.85))' }} />
+                <circle cx="0" cy="0" r="4" fill="#c8ff32" stroke="#0b1110" strokeWidth="2" />
               </g>
             </svg>
             <div className="absolute bottom-3 left-3 rounded bg-black/30 px-1.5 py-1 font-mono text-[9px] text-white/45">tap chart to set angle · {angleDegrees}°</div>
