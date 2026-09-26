@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { connect, openContractCall } from '@stacks/connect'
 import { uintCV } from '@stacks/transactions'
+import { calculateNashRate } from '@/lib/nash'
 import { Activity, ArrowDownRight, ArrowUpRight, ChevronDown, CircleHelp, Crosshair, Gauge, Menu, Radio, ShieldCheck, Sparkles, Trophy, Wallet, Zap } from 'lucide-react'
 
 type BetKind = 'mine-win' | 'mine-loss' | 'other'
@@ -48,6 +49,10 @@ export default function Page() {
   const [candleTick, setCandleTick] = useState(0)
   const [btcPrice, setBtcPrice] = useState<number | null>(null)
   const [priceDelta, setPriceDelta] = useState(0)
+  const [stackHeight, setStackHeight] = useState<number | null>(null)
+  const [settlementStatus, setSettlementStatus] = useState<'estimated' | 'pending'>('estimated')
+  const [nashPreview, setNashPreview] = useState(0)
+  const [batchEpoch, setBatchEpoch] = useState<number | null>(null)
   const [balance, setBalance] = useState(0)
   const [status, setStatus] = useState<'idle' | 'running' | 'win' | 'loss'>('idle')
   const [lastReward, setLastReward] = useState<number | null>(null)
@@ -68,6 +73,30 @@ export default function Page() {
   const trendDirection = lastCandle.close - firstCandle.close
   const trendPercent = btcPrice && priceDelta ? (priceDelta / btcPrice) * 100 : 0
   const chartOrigin = { x: 0, y: 150 }
+
+  useEffect(() => {
+    let cancelled = false
+    async function updateChainState() {
+      try {
+        const response = await fetch(`/api/stacks/height?t=${Date.now()}`, { cache: 'no-store' })
+        if (!response.ok) return
+        const data = await response.json()
+        if (!cancelled && Number.isFinite(Number(data.height))) {
+          setStackHeight(Number(data.height))
+          setBatchEpoch(Number(data.epoch))
+        }
+      } catch {
+        // Keep the last known chain height during transient Hiro outages.
+      }
+    }
+    updateChainState()
+    const interval = window.setInterval(updateChainState, 15_000)
+    return () => { cancelled = true; window.clearInterval(interval) }
+  }, [])
+
+  useEffect(() => {
+    setNashPreview(calculateNashRate({ deltaR: Math.round(Math.abs(angle) * 1_000_000), deltaRNS: Math.round(Math.abs(priceDelta) * 1_000_000), epsilon: 1 }))
+  }, [angle, priceDelta])
 
   useEffect(() => {
     let previousPrice: number | null = null
@@ -277,7 +306,7 @@ export default function Page() {
           <div className="rounded-2xl border border-white/[0.07] bg-[#111716] p-4">
             <input aria-label="Risk angle" type="range" min="-1" max="1" step="0.01" value={angle} onChange={(e) => { const nextAngle = Number(e.target.value); setAngle(nextAngle); setArrowTip({ x: lastCandle.x, y: Math.max(12, Math.min(138, firstCandle.close - nextAngle * 60)) }) }} className="risk-slider w-full" style={{ '--fill': `${((angle + 1) / 2) * 100}%` } as React.CSSProperties} />
             <div className="mt-3 flex justify-between font-mono text-[10px] text-white/30"><span>−1.00 bearish</span><span>neutral</span><span>+1.00 bullish</span></div>
-            <div className="mt-4 border-t border-white/[0.06] pt-3"><div className="flex items-center justify-between"><span className="text-[11px] text-white/35">estimated reward</span><span className="font-mono text-sm text-[#c8ff32]">+${rewardPreview.toFixed(2)}</span></div><p className="mt-2 truncate font-mono text-[9px] text-white/20" title="Reward = ΔR² / (|ΔR − ΔR_NS| + ε) − ΔR">R = ΔR² / (|ΔR − ΔR_NS| + ε) − ΔR</p></div>
+            <div className="mt-4 border-t border-white/[0.06] pt-3"><div className="flex items-center justify-between"><span className="text-[11px] text-white/35">estimated reward</span><span className="font-mono text-sm text-[#c8ff32]">+${rewardPreview.toFixed(2)}</span></div><p className="mt-2 truncate font-mono text-[9px] text-white/20" title="Reward = ΔR² / (|ΔR − ΔR_NS| + ε) − ΔR">R = ΔR² / (|ΔR − ΔR_NS| + ε) − ΔR</p><div className="mt-3 flex items-center justify-between border-t border-white/[0.06] pt-3"><span className="text-[10px] uppercase tracking-[0.12em] text-white/30">BTC / Base oracle</span><span className="font-mono text-[11px] text-[#58d9ff]">{nashPreview === 0 ? 'syncing' : `${(nashPreview / 1_000_000).toFixed(6)} base`}</span></div><p className="mt-1 text-[9px] text-white/25">{settlementStatus === 'pending' ? 'Pending settlement confirmation' : 'Nash preview · not yet settled'}</p></div>
           </div>
         </section>
 
@@ -298,7 +327,7 @@ export default function Page() {
           {contractTxId && <a href={`https://explorer.hiro.so/txid/${contractTxId}?chain=testnet`} target="_blank" rel="noreferrer" className="mt-2 block truncate text-center font-mono text-[9px] text-[#58d9ff]">contract tx: {contractTxId}</a>}
           <section className="mt-4 rounded-2xl border border-white/[0.07] bg-[#111716] px-4 py-4">
             <div className="flex items-start justify-between"><div><p className="text-[10px] uppercase tracking-[0.18em] text-white/35">available balance</p><p className="mt-1 font-mono text-[27px] font-semibold tracking-tight">{balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} <span className="text-sm text-white/45">STX</span></p></div><div className="rounded-lg border border-[#c8ff32]/20 bg-[#c8ff32]/10 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-[#c8ff32]">+12.4%</div></div>
-            <div className="mt-4 flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-white/35"><Wallet size={12} /> round {String(round).padStart(2, '0')} <span className="ml-auto flex items-center gap-1.5 text-[#c8ff32]"><Radio size={10} className="animate-pulse" /> market live</span></div>
+            <div className="mt-4 flex items-center gap-2 text-[10px] uppercase tracking-[0.16em] text-white/35"><Wallet size={12} /> round {String(round).padStart(2, '0')} <span className="ml-auto flex items-center gap-1.5 text-[#c8ff32]"><Radio size={10} className="animate-pulse" /> market live</span></div><div className="mt-2 flex items-center justify-between font-mono text-[9px] uppercase tracking-[0.1em] text-white/25"><span>{stackHeight ? `stacks block ${stackHeight}` : 'stacks block syncing'}</span><span>{batchEpoch === null ? 'epoch —' : `batch epoch ${batchEpoch}`}</span></div>
             <button type="button" onClick={requestTestStx} disabled={!walletConnected || faucetStatus === 'loading'} className="mt-4 flex w-full items-center justify-center rounded-xl border border-[#58d9ff]/25 bg-[#58d9ff]/10 px-3 py-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-[#58d9ff] transition hover:bg-[#58d9ff]/15 disabled:cursor-not-allowed disabled:opacity-35">{faucetStatus === 'loading' ? 'Requesting test STX...' : 'Get test STX from Faucet'}</button>
             {faucetMessage && <p className={`mt-2 truncate text-center font-mono text-[9px] ${faucetStatus === 'error' ? 'text-[#ff5964]' : 'text-white/35'}`} title={faucetMessage}>{faucetMessage}</p>}
           </section>
